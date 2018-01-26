@@ -16,3 +16,9 @@ automatically move to right position when parent view's frame / bounds changed
 view.badge.show()
 
 view.badge.hide()
+
+
+## Installation
+drop this file to your project
+
+https://github.com/OnlyMyRailgun/BadgeMaker/blob/master/MyPlayground.playground/Sources/BadgeMaker.swift
