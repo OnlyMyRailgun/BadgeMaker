@@ -4,12 +4,16 @@ import UIKit
 import PlaygroundSupport
 import ObjectiveC
 
-struct BadgeMaker<Base> {
+class BadgeMaker<Base>: NSObject {
     let base: Base
     var offset: CGPoint = .zero
     var radius: CGFloat = 5
     var color: UIColor = .red
     private let dot = CAShapeLayer()
+    private let keyPaths = [
+        #keyPath(UIView.frame),
+        #keyPath(UIView.bounds)
+    ]
 
     init(_ base: Base) {
         self.base = base
@@ -17,6 +21,26 @@ struct BadgeMaker<Base> {
 
     func hide() {
         dot.removeFromSuperlayer()
+    }
+
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if let objectView = object as? UIView,
+            let keyPathNotNil = keyPath,
+            keyPaths.contains(keyPathNotNil) {
+            generatePath(on: objectView)
+        }
+    }
+
+    fileprivate func registListener(on view: UIView) {
+        keyPaths.forEach { [weak self] in
+            guard let `self` = self else { return }
+            view.addObserver(
+                self,
+                forKeyPath: $0,
+                options: [.new, .initial],
+                context: nil
+            )
+        }
     }
 
     fileprivate func generatePath(on view: UIView) {
@@ -39,20 +63,25 @@ struct BadgeMaker<Base> {
 
 extension BadgeMaker where Base: UIBarButtonItem {
     func show() {
-        var container: UIView?
-        guard let navigationButton = base.value(forKey: "_view") as? UIView else { return }
-        let controlName = (kSystemVersion < 11.0 ? "UIImageView" : "UIButton" )
-        for subView in navigationButton.subviews {
-            if subView.isKind(of: NSClassFromString(controlName)!) {
-                subView.layer.masksToBounds = false
-                container = subView
-                break
+        var container: UIView? = base.customView
+
+        if container == nil {
+            let button = UIButton()
+            button.setTitle(base.title, for: .normal)
+            button.setImage(base.image, for: .normal)
+            button.tintColor = base.tintColor
+            if let action = base.action {
+                button.addTarget(base.target, action: action, for: .touchUpInside)
             }
+            base.customView = button
+            container = button
         }
+
         guard let view = container else { return }
         generatePath(on: view)
         if dot.superlayer == nil {
             view.layer.addSublayer(dot)
+            registListener(on: view)
         }
     }
 }
@@ -62,6 +91,7 @@ extension BadgeMaker where Base: UIView {
         generatePath(on: base)
         if dot.superlayer == nil {
             base.layer.addSublayer(dot)
+            registListener(on: base)
         }
     }
 }
@@ -105,8 +135,7 @@ class MyViewController : UIViewController {
         label.badge.show()
         
         view.addSubview(label)
-        
-        
+
         let button = UIButton()
         button.setImage(UIImage(named: "ic_android"), for: .normal)
         button.frame = CGRect(x: 150, y: 260, width: 24, height: 24)
