@@ -132,6 +132,8 @@ class MyViewController : UIViewController {
         label.frame = CGRect(x: 150, y: 200, width: 200, height: 20)
         label.text = "Hello World!"
         label.textColor = .black
+        label.badge.color = .orange
+        label.badge.offset = CGPoint(x: -100, y: 0)
         label.badge.show()
         
         view.addSubview(label)
